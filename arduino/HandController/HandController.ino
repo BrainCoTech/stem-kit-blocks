@@ -26,17 +26,29 @@ typedef enum {
     PINKY = 4
 } Finger;
 
+//remote type Carmp3
 typedef enum {
-    MOVE_THUMB = 2295, // btn 1
-    MOVE_INDEX = 34935, // btn 2
-    MOVE_MIDDLE = 18615, // btn 3
-    MOVE_RING = 10455, // btn 4
-    MOVE_PINKY = 43095, // btn 5
-    MOVE_WAVE = 26775, // btn 6
-    MOVE_ROCK = 22695, // btn 7
-    MOVE_PAPER = 39015, // btn 8
-    MOVE_SCISSOR = 6375, // btn 9
-    
+    BTN_CH_MINUS = 41565,
+    BTN_CH = 25245, 
+    BTN_CH_PLUS = 57885,
+    BTN_PREV = 8925,
+    BTN_NEXT = 765,
+    BTN_PLAY = 49725,
+    BTN_VOL_DOWN = 57375,
+    BTN_VOL_UP = 43095,
+    BTN_EQ = 36975,
+    BTN_0 = 26775,
+    BTN_100_PLUS = 39015,
+    BTN_200_PLUS = 45135,
+    BTN_1 = 12495,
+    BTN_2 = 6375,
+    BTN_3 = 31365,
+    BTN_4 = 4335,
+    BTN_5 = 14535,
+    BTN_6 = 23205,
+    BTN_7 = 17085,
+    BTN_8 = 19125,
+    BTN_9 = 21165,
 } IR_REMOTE_KEYS;
 
 static int FINGER_PINS[5] = {5, 6, 9, 10, 11};
@@ -47,14 +59,12 @@ static Servo finger_servos[5];
 static int current_finger_states[FINGER_COUNT] = {0};
 //prevent from receiving constantly coming signal of rock, causing action not finished
 static bool thumb_collision_lock = false;
-
+static bool serial_port_data_lock = false;
 //Receiving several chars from serial report
-//https://forum.arduino.cc/index.php?topic=288234.0
-static bool receiving_new_data_lock = false;
 static int serial_port_finger_degs[FINGER_COUNT]; // an array to store the received data
 
 bool check_thumb_collision(int new_finger_states[]) {
-    return new_finger_states[0] && (new_finger_states[1] || new_finger_states[2]);
+    return new_finger_states[0] == 180 && (new_finger_states[1] == 180 || new_finger_states[2] == 180);
 }
 
 bool check_finger_states(int new_finger_states[]) {
@@ -86,9 +96,9 @@ void multi_finger_control(int fingers_states[]) {
 }
 
 void gesture_rock(){
-    //thumb bending first and then bending the other four fingers
-    int finger_states_rock_stage1[FINGER_COUNT] = {180, 0, 0, 0, 0};
-    int finger_states_rock_stage2[FINGER_COUNT] = {180 ,180, 180, 180, 180};
+    //thumb bending at last avoid collision
+    int finger_states_rock_stage1[FINGER_COUNT] = {0 ,180, 180, 180, 180};
+    int finger_states_rock_stage2[FINGER_COUNT] = {180, 180, 180, 180, 180};
     bool is_previous_rock = check_finger_states(finger_states_rock_stage2);
 
     if (!is_previous_rock) {
@@ -110,55 +120,27 @@ void reset_finger_states(){
     multi_finger_control(init_finger_states);
 }
 
-//https://forum.arduino.cc/index.php?topic=288234.0
-void on_received_serial_port_non_blocking() {
-    static byte ndx = 0;
-    char end_marker = '>';
-    char received_char;
-    
-    while (Serial.available() > 0 && !receiving_new_data_lock) {
-        received_char = Serial.read();
-
-        if (received_char != end_marker) {
-            if (received_char == '1') {
-                serial_port_finger_degs[ndx] = 0; 
-            }
-            else if (received_char == '0') {
-                serial_port_finger_degs[ndx] = 180;
-            }
-
-            ndx++;
-            if (ndx >= FINGER_COUNT) {
-                ndx = FINGER_COUNT - 1;
-            }
+void on_received_serial_byte() {
+    unsigned char byte;
+    if (Serial.available() > 0 && !thumb_collision_lock && !serial_port_data_lock) {
+        serial_port_data_lock = true;
+        byte = Serial.read();
+        unsigned char a = 0b10000000;
+        int finger_states[FINGER_COUNT];
+        for (int i = 0; i < FINGER_COUNT; i ++){
+            finger_states[i] = ((byte & a) >> (7-i)) * 180;
+            a >>= 1;
         }
-        else {
-            ndx = 0;
-            receiving_new_data_lock = true;
+
+        bool is_finger_states_same = check_finger_states(finger_states);
+        if (!is_finger_states_same) {
+            trigger_hand_control_by_bits(finger_states);
         }
+        serial_port_data_lock = false;
     }
 }
 
-void on_received_serial_port_blocking() {
-    char serial_bytes[FINGER_COUNT];
-    int bytes = 0;
-    if (Serial.available() > 0 && !receiving_new_data_lock) {
-         bytes = Serial.readBytes(serial_bytes, FINGER_COUNT);
-         for (int i = 0; i < bytes; i++) { 
-            Serial.println(serial_bytes[i]);
-             if (serial_bytes[i] == '1') {
-                Serial.println("Received 1");
-                serial_port_finger_degs[i] = 0;
-             } else if (serial_bytes[i] == '0') {
-                Serial.println("Received 0");
-                serial_port_finger_degs[i] = 180;
-             }
-         }
-         trigger_hand_control_by_bits();
-    }
-}
-
-void on_received_remote_control(){
+void on_received_remote_control() {
     decode_results remote_signal; // Save signal structure
     word remote_signal_code;  //remote_signal_code for IR remote control
 
@@ -184,63 +166,64 @@ void start_finger_wave() {
     }
 }
 
-void trigger_hand_control_by_bits() {    
-    bool is_collision = check_thumb_collision(serial_port_finger_degs);
+void trigger_hand_control_by_bits(int finger_states[]) {    
+    bool is_collision = check_thumb_collision(finger_states);
     if (is_collision) {
-        Serial.println("Move four finger");
-        serial_port_finger_degs[0] = FINGER_MIN_DEGS[0];
+        thumb_collision_lock = true;
+        finger_states[THUMB] = FINGER_MIN_DEGS[THUMB];
         multi_finger_control(serial_port_finger_degs);
         delay(200);
-        finger_control(THUMB, FINGER_MAX_DEGS[0]);
+        finger_states[THUMB] = FINGER_MAX_DEGS[THUMB];
+        multi_finger_control(finger_states);
+        thumb_collision_lock = false;
     } else {
-        Serial.println("Move five fingers");
-        multi_finger_control(serial_port_finger_degs);
+        multi_finger_control(finger_states);
     }
 }
 
 void trigger_hand_control(word remote_signal_code) {
-    switch(remote_signal_code) {
-        case MOVE_THUMB: {
-            finger_control(THUMB, 180 - current_finger_states[THUMB]);
-            break;
-        }
-        case MOVE_INDEX: {
-            finger_control(INDEX, 180 - current_finger_states[INDEX]);
-            break;
-        }
-        case MOVE_MIDDLE: {
-            finger_control(MIDDLE, 180 - current_finger_states[MIDDLE]);
-            break;
-        }
-        case MOVE_RING: {
-            finger_control(RING, 180 - current_finger_states[RING]);
-            break;
-        }
-        case MOVE_PINKY: {
-            finger_control(PINKY, 180 - current_finger_states[PINKY]);
-            break;
-        }
-        case MOVE_WAVE: {
-            reset_finger_states();
-            delay(1000);
-            start_finger_wave();
-            break;
-        }
-        case MOVE_SCISSOR: {
-            gesture_scissor();
-            break;
-        }
-        case MOVE_PAPER: {
-            reset_finger_states();
-            break; 
-        }
-        case MOVE_ROCK: {
-            gesture_rock();
-            break;
-        }
-        default: // Error
-            break;
-    }
+     switch(remote_signal_code) {
+         case BTN_1: {
+             finger_control(THUMB, 180 - current_finger_states[THUMB]);
+             break;
+         }
+         case BTN_2: {
+             finger_control(INDEX, 180 - current_finger_states[INDEX]);
+             break;
+         }
+         case BTN_3: {
+             finger_control(MIDDLE, 180 - current_finger_states[MIDDLE]);
+             break;
+         }
+         case BTN_4: {
+             finger_control(RING, 180 - current_finger_states[RING]);
+             break;
+         }
+         case BTN_5: {
+             finger_control(PINKY, 180 - current_finger_states[PINKY]);
+             break;
+         }
+         case BTN_6: {
+             reset_finger_states();
+             delay(1000);
+             start_finger_wave();
+             break;
+         }
+         case BTN_7: {
+             gesture_scissor();
+             break;
+         }
+         case BTN_8: {
+             reset_finger_states();
+             break; 
+         }
+         case BTN_9: {
+             gesture_rock();
+             break;
+         }
+         default: // Error
+             break;
+     }
 }
 
 void setup() {
@@ -249,24 +232,20 @@ void setup() {
     for (int i = 0; i < FINGER_COUNT; i++) {
         finger_servos[i].attach(FINGER_PINS[i]);
     }
-    // pinMode(IR_RECV_PIN, INPUT);
-    // #ifdef ENABLE_SERIAL_PORT_CONTROL
-    // #endif
+    #ifdef ENABLE_SERIAL_PORT_CONTROL
     Serial.begin(SERIAL_PORT);//connect to serial port, baud rate is 9600
+    #endif
     reset_finger_states();
-
     //10 for what
     delay(10);
-
     #ifdef ENABLE_SERIAL_PORT_CONTROL
     irrecv.blink13(true); // if signal is received, then pin13 led light blink
     irrecv.enableIRIn(); // enable the singal receival function
     #endif
-
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, HIGH);
     digitalWrite(A0, HIGH);
-    Serial.println("The Hand is ready!!" ) ;
+    Serial.println("Setup End" ) ;
 }
 
 void loop() {
@@ -277,17 +256,10 @@ void loop() {
         reset_finger_states();
         Serial.println("Bending the fingers too long, Release!");
     }
-    //communicate with python
+    //control by serial port
     #ifdef ENABLE_SERIAL_PORT_CONTROL
-    on_received_serial_port_blocking(); 
+    on_received_serial_byte(); 
     #endif
-
-    //Non-blocking method
-    // Serial.println(receiving_new_data_lock);
-    // if (receiving_new_data_lock) {
-    //     trigger_hand_control_by_bits();
-    // }
-    // Blocking method
 
     //control by IR remote
     #ifdef ENABLE_IR_REMOTE_CONTROL
