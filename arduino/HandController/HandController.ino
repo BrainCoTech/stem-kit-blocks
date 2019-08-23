@@ -111,35 +111,50 @@ void reset_finger_states(){
 }
 
 //https://forum.arduino.cc/index.php?topic=288234.0
-void on_received_serial_port() {
-    if(Serial.available() > 0){
-        static byte ndx = 0;
-        char end_marker = '>';
-        char received_char;
-        
-        while (Serial.available() > 0 && receiving_new_data_lock == false) {
-            received_char = Serial.read();
+void on_received_serial_port_non_blocking() {
+    static byte ndx = 0;
+    char end_marker = '>';
+    char received_char;
+    
+    while (Serial.available() > 0 && !receiving_new_data_lock) {
+        received_char = Serial.read();
 
-            if (received_char != end_marker) {
-                if (received_char == '1') {
-                    serial_port_finger_degs[ndx] = 0; 
-                    Serial.println("Receiving 1");
-                }
-                else if (received_char == '0') {
-                    serial_port_finger_degs[ndx] = 180;
-                    Serial.println("Receiving 0");
-                } 
-
-                ndx++;
-                if (ndx >= FINGER_COUNT) {
-                    ndx = FINGER_COUNT - 1;
-                }
+        if (received_char != end_marker) {
+            if (received_char == '1') {
+                serial_port_finger_degs[ndx] = 0; 
             }
-            else {
-                ndx = 0;
-                receiving_new_data_lock = true;
+            else if (received_char == '0') {
+                serial_port_finger_degs[ndx] = 180;
+            }
+
+            ndx++;
+            if (ndx >= FINGER_COUNT) {
+                ndx = FINGER_COUNT - 1;
             }
         }
+        else {
+            ndx = 0;
+            receiving_new_data_lock = true;
+        }
+    }
+}
+
+void on_received_serial_port_blocking() {
+    char serial_bytes[FINGER_COUNT];
+    int bytes = 0;
+    if (Serial.available() > 0 && !receiving_new_data_lock) {
+         bytes = Serial.readBytes(serial_bytes, FINGER_COUNT);
+         for (int i = 0; i < bytes; i++) { 
+            Serial.println(serial_bytes[i]);
+             if (serial_bytes[i] == '1') {
+                Serial.println("Received 1");
+                serial_port_finger_degs[i] = 0;
+             } else if (serial_bytes[i] == '0') {
+                Serial.println("Received 0");
+                serial_port_finger_degs[i] = 180;
+             }
+         }
+         trigger_hand_control_by_bits();
     }
 }
 
@@ -169,19 +184,18 @@ void start_finger_wave() {
     }
 }
 
-void trigger_hand_control_by_bits() {
-    Serial.println("Trigger Hand Control By Bit");
-    
+void trigger_hand_control_by_bits() {    
     bool is_collision = check_thumb_collision(serial_port_finger_degs);
     if (is_collision) {
+        Serial.println("Move four finger");
         serial_port_finger_degs[0] = FINGER_MIN_DEGS[0];
         multi_finger_control(serial_port_finger_degs);
         delay(200);
         finger_control(THUMB, FINGER_MAX_DEGS[0]);
     } else {
+        Serial.println("Move five fingers");
         multi_finger_control(serial_port_finger_degs);
     }
-    receiving_new_data_lock = false;
 }
 
 void trigger_hand_control(word remote_signal_code) {
@@ -236,9 +250,9 @@ void setup() {
         finger_servos[i].attach(FINGER_PINS[i]);
     }
     // pinMode(IR_RECV_PIN, INPUT);
-    #ifdef ENABLE_SERIAL_PORT_CONTROL
+    // #ifdef ENABLE_SERIAL_PORT_CONTROL
+    // #endif
     Serial.begin(SERIAL_PORT);//connect to serial port, baud rate is 9600
-    #endif
     reset_finger_states();
 
     //10 for what
@@ -265,13 +279,16 @@ void loop() {
     }
     //communicate with python
     #ifdef ENABLE_SERIAL_PORT_CONTROL
-    on_received_serial_port(); 
+    on_received_serial_port_blocking(); 
     #endif
 
-    Serial.println(receiving_new_data_lock);
-    if (receiving_new_data_lock == true) {
-        trigger_hand_control_by_bits();
-    }
+    //Non-blocking method
+    // Serial.println(receiving_new_data_lock);
+    // if (receiving_new_data_lock) {
+    //     trigger_hand_control_by_bits();
+    // }
+    // Blocking method
+
     //control by IR remote
     #ifdef ENABLE_IR_REMOTE_CONTROL
     on_received_remote_control();
