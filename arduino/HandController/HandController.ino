@@ -13,7 +13,6 @@
 #define THUMB_COLLISION_DELAY 200 // milliseconds
 #define CAUSE_COLLISION_DEG 60
 #define THUMB_COLLISION_MAX_DEG 120
-#define FLIP_FINGER_DEG 180
 
 #define ENABLE_IR_REMOTE_CONTROL 1
 #define ENABLE_SERIAL_PORT_CONTROL 1
@@ -77,18 +76,18 @@ bool is_equal_to_prev_finger_states(int new_finger_states[]) {
 }
 
 // Single-finger movement
-void move_finger(int finger, int degree) {
+void move_finger(int finger, int percentage) {
     idle_ts = millis();
     //TODO: Might change the filp finger
-    bool should_flip = finger >= RING;
+    int actual_percentage = percentage;
+    if (finger >= RING) actual_percentage = 100 - percentage;
+    float degree = ((FINGER_MAX_DEGS[finger] - FINGER_MIN_DEGS[finger]) / 100.0) * actual_percentage + FINGER_MIN_DEGS[finger];
     //enum Finger are int
-    float adjusted = ((FINGER_MAX_DEGS[finger] - FINGER_MIN_DEGS[finger]) / 100.0) * degree + FINGER_MIN_DEGS[finger];
-    int adjusted_deg = (int) (adjusted + 0.5);
-
-    if(should_flip) adjusted_deg = FLIP_FINGER_DEG - adjusted_deg;
-    finger_servos[finger].write(adjusted_deg);
+    int rounded_deg = (int) (degree + 0.5);
+    Serial.println(rounded_deg);
+    finger_servos[finger].write(rounded_deg);
     //keep track of current state
-    current_finger_states[finger] = degree;
+    current_finger_states[finger] = percentage;
 }
 
 // multi-finger control
