@@ -53,8 +53,8 @@ typedef enum {
 
 static int FINGER_PINS[5] = {5, 6, 9, 10, 11}; 
 
-static int FINGER_MAX_DEGS[FINGER_COUNT] = {120, 120, 120, 120, 120};
-static int FINGER_MIN_DEGS[FINGER_COUNT] = {0};
+static int FINGER_MAX_DEGS[FINGER_COUNT] = {90, 90, 90, 90, 90};
+static int FINGER_INITIAL_DEGS[FINGER_COUNT] = {0, 180, 0, 0, 180};
 
 static Servo finger_servos[5];
 static int current_finger_states[FINGER_COUNT] = {0};
@@ -78,13 +78,9 @@ bool is_equal_to_prev_finger_states(int new_finger_states[]) {
 // Single-finger movement
 void move_finger(int finger, int percentage) {
     idle_ts = millis();
-    //TODO: Might change the filp finger
-    int actual_percentage = percentage;
-    if (finger >= RING) actual_percentage = 100 - percentage;
-    float degree = ((FINGER_MAX_DEGS[finger] - FINGER_MIN_DEGS[finger]) / 100.0) * actual_percentage + FINGER_MIN_DEGS[finger];
+    float degree = ((FINGER_MAX_DEGS[finger] - FINGER_INITIAL_DEGS[finger]) / 100.0) * percentage + FINGER_INITIAL_DEGS[finger];
     //enum Finger are int
     int rounded_deg = (int) (degree + 0.5);
-    Serial.println(rounded_deg);
     finger_servos[finger].write(rounded_deg);
     //keep track of current state
     current_finger_states[finger] = percentage;
