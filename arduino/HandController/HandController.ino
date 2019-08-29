@@ -51,12 +51,12 @@ typedef enum {
     LONG_PRESS = 65535
 } IR_REMOTE_KEYS;
 
-static int FINGER_PINS[5] = {5, 6, 9, 10, 11}; 
+static int FINGER_PINS[FINGER_COUNT] = {5, 6, 9, 10, 11}; 
 
 static int FINGER_MAX_DEGS[FINGER_COUNT] = {90, 90, 90, 90, 90};
 static int FINGER_INITIAL_DEGS[FINGER_COUNT] = {0, 180, 0, 0, 180};
 
-static Servo finger_servos[5];
+static Servo finger_servos[FINGER_COUNT];
 static int current_finger_states[FINGER_COUNT] = {0};
 //prevent from receiving constantly coming signal of rock, causing action not finished
 static bool thumb_collision_lock = false;
@@ -179,12 +179,12 @@ void gesture_rock(){
 }
 
 void gesture_scissor(){
-    int finger_states_scissor[5] = {100, 0, 0, 100, 100};
+    int finger_states_scissor[FINGER_COUNT] = {100, 0, 0, 100, 100};
     move_fingers(finger_states_scissor);
 }
 
 void reset_finger_states(){
-    int relaxed_finger_states[5] = {0};
+    int relaxed_finger_states[FINGER_COUNT] = {0};
     move_fingers(relaxed_finger_states);
 }
 
