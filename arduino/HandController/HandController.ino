@@ -12,7 +12,7 @@
 #define MOVEMENT_WAITING_TIME 500 // milliseconds
 #define THUMB_COLLISION_WAIT 200 // milliseconds
 #define CAUSE_COLLISION_DEG 60
-#define THUMB_COLLISION_MAX_DEG 120
+#define THUMB_COLLISION_MAX_PERCENTAGE 60
 
 #define ENABLE_IR_REMOTE_CONTROL 1
 #define ENABLE_SERIAL_PORT_CONTROL 1
@@ -53,8 +53,7 @@ typedef enum {
 
 static int FINGER_PINS[FINGER_COUNT] = {5, 6, 9, 10, 11};
 
-static int FINGER_MAX_DEGS[FINGER_COUNT] = {90, 90, 90, 90, 90};
-static int FINGER_INITIAL_DEGS[FINGER_COUNT] = {0, 180, 0, 0, 180};
+static int FINGER_MAX_DEGS[FINGER_COUNT] = {90, 100, 100, 100, 100};
 
 static Servo finger_servos[FINGER_COUNT];
 static int current_finger_states[FINGER_COUNT] = {0};
@@ -65,7 +64,7 @@ IRrecv irrecv(IR_RECV_PIN); // Initiate IR signal input
 unsigned long idle_ts;
 
 bool check_thumb_collision(int new_finger_states[]) {
-    return new_finger_states[THUMB] > CAUSE_COLLISION_DEG && (new_finger_states[INDEX] > CAUSE_COLLISION_DEG || new_finger_states[MIDDLE] > CAUSE_COLLISION_DEG);
+    return new_finger_states[THUMB] > CAUSE_COLLISION_DEG && (new_finger_states[INDEX] > CAUSE_COLLISION_DEG);
 }
 
 bool is_equal_to_prev_finger_states(int new_finger_states[]) {
@@ -78,9 +77,20 @@ bool is_equal_to_prev_finger_states(int new_finger_states[]) {
 // Single-finger movement
 void move_finger(int finger, int percentage) {
     idle_ts = millis();
-    float degree = ((FINGER_MAX_DEGS[finger] - FINGER_INITIAL_DEGS[finger]) / 100.0) * percentage + FINGER_INITIAL_DEGS[finger];
+    float max = FINGER_MAX_DEGS[finger], min = 0;
+    //index and pinky finger initial position at degree 180
+    if(finger == INDEX || finger == PINKY) {
+        max = 180 - FINGER_MAX_DEGS[finger];
+        min = 180;
+    }
+    //check thumb collision
+    if (finger == THUMB && percentage >= CAUSE_COLLISION_DEG && current_finger_states[INDEX] >= CAUSE_COLLISION_DEG) {
+        percentage = THUMB_COLLISION_MAX_PERCENTAGE;
+    }
+    float degree = (max - min) * percentage / 100 + min;
     //enum Finger are int
     int rounded_deg = (int) (degree + 0.5);
+
     finger_servos[finger].write(rounded_deg);
     //keep track of current state
     current_finger_states[finger] = percentage;
@@ -101,7 +111,7 @@ void move_fingers_with_collision_checking(int finger_states[]) {
         move_fingers(finger_states);
         delay(THUMB_COLLISION_WAIT);
         //move thumb using saved thumb state
-        move_finger(THUMB, thumb_finger_state);
+        move_finger(THUMB, THUMB_COLLISION_MAX_PERCENTAGE);
         thumb_collision_lock = false;
     } else {
         move_fingers(finger_states);
@@ -112,7 +122,8 @@ void move_fingers_with_ir_cmd(word remote_signal_code) {
     switch(remote_signal_code) {
         case BTN_1: {
             Serial.println("BTN_1 received: moving thumb");
-            move_finger(THUMB, 100 - current_finger_states[THUMB]);
+            if (current_finger_states[THUMB]) move_finger(THUMB, 0);
+            else move_finger(THUMB, 100); 
             break;
         }
         case BTN_2: {
