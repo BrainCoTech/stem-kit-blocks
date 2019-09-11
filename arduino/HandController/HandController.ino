@@ -120,6 +120,11 @@ void move_fingers_with_collision_checking(int finger_states[]) {
 
 void move_fingers_with_ir_cmd(word remote_signal_code) {
     switch(remote_signal_code) {
+        case BTN_0: {
+            Serial.println("BTN_0 received: making paper gesture");
+            reset_finger_states();
+            break;
+        }
         case BTN_1: {
             Serial.println("BTN_1 received: moving thumb");
             if (current_finger_states[THUMB]) move_finger(THUMB, 0);
@@ -159,8 +164,9 @@ void move_fingers_with_ir_cmd(word remote_signal_code) {
             break;
         }
         case BTN_8: {
-            Serial.println("BTN_8 received: making paper gesture");
-            reset_finger_states();
+            Serial.println("BTN_8 received: Love gesture");
+            int finger_states_love[FINGER_COUNT] = {0, 0, 100, 100, 0};
+            move_fingers(finger_states_love);
             break;
         }
         case BTN_9: {
