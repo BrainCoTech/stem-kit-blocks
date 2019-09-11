@@ -238,13 +238,11 @@ void handle_ir_remote_cmd() {
 void start_finger_wave() {
     int finger_states_wave[FINGER_COUNT] = {0};
     for (int i = 0; i < FINGER_COUNT; i++) {
-        finger_states_wave[i] = 100 - finger_states_wave[i];
-        move_fingers(finger_states_wave);
+        move_finger((Finger)i, 100);
         delay(MOVEMENT_WAITING_TIME);
     }
     for (int i = FINGER_COUNT - 1; i >= 0; i--) {
-        finger_states_wave[i] = 100 - finger_states_wave[i];
-        move_fingers(finger_states_wave);
+        move_finger((Finger)i, 0);
         delay(MOVEMENT_WAITING_TIME);
     }
 }
