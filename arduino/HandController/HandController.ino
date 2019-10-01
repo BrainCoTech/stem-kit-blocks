@@ -120,6 +120,16 @@ void move_fingers_with_collision_checking(int finger_states[]) {
 
 void move_fingers_with_ir_cmd(word remote_signal_code) {
     switch(remote_signal_code) {
+        case BTN_100_PLUS: {
+            Serial.println("BTN_100_PLUS received: making advanced finger wave");
+            start_finger_wave_advanced();
+            break;
+        }
+        case BTN_200_PLUS: {
+            Serial.println("BTN_200_PLUS received: making popping finger wave");
+            start_finger_popping();
+            break;
+        }
         case BTN_0: {
             Serial.println("BTN_0 received: making paper gesture");
             reset_finger_states();
@@ -248,180 +258,201 @@ void start_finger_wave() {
 }
 
 void start_finger_wave_advanced() {
-    int finger_states_wave[FINGER_COUNT] = {0};
+    int finger_states[FINGER_COUNT] = {0};
+    int move_pos = INDEX, reset_pos;
+    
+    for(int i = 0; i < 100; i++) {
+        reset_pos = move_pos - 2;
+        if(reset_pos < THUMB) reset_pos = RING;
+        else if (reset_pos == THUMB) reset_pos = PINKY;
+        finger_states[move_pos] = 100;
+        finger_states[reset_pos] = 0;
+        move_fingers(finger_states);
+        delay(250);
+        if (++move_pos > PINKY) move_pos = INDEX;
+    }
+}
 
-    int base_percentage = 10;
+void start_finger_popping() {
+    int finger_states_wave[FINGER_COUNT] = {0};
+    int base_percentage = 12;
+
+    int delay_time = 150;
 
     for (int i = 0; i < 10; i++) {
-      delay(100);
-    finger_states_wave[INDEX] = 2 * base_percentage;
-    move_fingers(finger_states_wave);
-
-    delay(100);
-    finger_states_wave[INDEX] = 4 * base_percentage;
-    finger_states_wave[MIDDLE] = 2 * base_percentage;
-    move_fingers(finger_states_wave);
-
-    delay(100);
-    finger_states_wave[INDEX] = 6 * base_percentage;
-    finger_states_wave[MIDDLE] = 4 * base_percentage;
-    finger_states_wave[RING] = 2 * base_percentage;
-    move_fingers(finger_states_wave);
-
-    delay(100);
-    finger_states_wave[INDEX] = 8 * base_percentage;
-    finger_states_wave[MIDDLE] = 6 * base_percentage;
-    finger_states_wave[RING] = 4 * base_percentage;
-    finger_states_wave[PINKY] = 2 * base_percentage;
-    move_fingers(finger_states_wave);
-
-    delay(100);
-    finger_states_wave[INDEX] = 10 * base_percentage;
-    finger_states_wave[MIDDLE] = 8 * base_percentage;
-    finger_states_wave[RING] = 6 * base_percentage;
-    finger_states_wave[PINKY] = 4 * base_percentage;
-    move_fingers(finger_states_wave);
-    
-    delay(100);
-    finger_states_wave[INDEX] = 8 * base_percentage;
-    finger_states_wave[MIDDLE] = 10 * base_percentage;
-    finger_states_wave[RING] = 8 * base_percentage;
-    finger_states_wave[PINKY] = 6 * base_percentage;
-    move_fingers(finger_states_wave);
-    
-    delay(100);
-    finger_states_wave[INDEX] = 6 * base_percentage;
-    finger_states_wave[MIDDLE] = 8 * base_percentage;
-    finger_states_wave[RING] = 10 * base_percentage;
-    finger_states_wave[PINKY] = 8 * base_percentage;
-    move_fingers(finger_states_wave);
-    
-    delay(100);
-    finger_states_wave[INDEX] = 4 * base_percentage;
-    finger_states_wave[MIDDLE] = 6 * base_percentage;
-    finger_states_wave[RING] = 8 * base_percentage;
-    finger_states_wave[PINKY] = 10 * base_percentage;
-    move_fingers(finger_states_wave);
-    delay(100);
-    finger_states_wave[INDEX] = 2 * base_percentage;
-    finger_states_wave[MIDDLE] = 4 * base_percentage;
-    finger_states_wave[RING] = 6 * base_percentage;
-    finger_states_wave[PINKY] = 8 * base_percentage;
-    move_fingers(finger_states_wave);
-    delay(100);
-    finger_states_wave[INDEX] = 0 * base_percentage;
-    finger_states_wave[MIDDLE] = 4 * base_percentage;
-    finger_states_wave[RING] = 6 * base_percentage;
-    finger_states_wave[PINKY] = 8 * base_percentage;
-    move_fingers(finger_states_wave);
-
-    delay(100);
-    finger_states_wave[INDEX] = 2 * base_percentage;
-    finger_states_wave[MIDDLE] = 2 * base_percentage;
-    finger_states_wave[RING] = 4 * base_percentage;
-    finger_states_wave[PINKY] = 6 * base_percentage;
-    move_fingers(finger_states_wave);
-
-     delay(100);
-    finger_states_wave[INDEX] = 4 * base_percentage;
-    finger_states_wave[MIDDLE] = 0 * base_percentage;
-    finger_states_wave[RING] = 2 * base_percentage;
-    finger_states_wave[PINKY] = 4 * base_percentage;
-    move_fingers(finger_states_wave);
-
-     delay(100);
-    finger_states_wave[INDEX] = 6 * base_percentage;
-    finger_states_wave[MIDDLE] = 2 * base_percentage;
-    finger_states_wave[RING] = 0 * base_percentage;
-    finger_states_wave[PINKY] = 4 * base_percentage;
-    move_fingers(finger_states_wave);
-
-     delay(100);
-    finger_states_wave[INDEX] = 8 * base_percentage;
-    finger_states_wave[MIDDLE] = 4 * base_percentage;
-    finger_states_wave[RING] = 0 * base_percentage;
-    finger_states_wave[PINKY] = 2 * base_percentage;
-    move_fingers(finger_states_wave);
-
-     delay(100);
-    finger_states_wave[INDEX] = 10 * base_percentage;
-    finger_states_wave[MIDDLE] = 6 * base_percentage;
-    finger_states_wave[RING] = 2 * base_percentage;
-    finger_states_wave[PINKY] = 0 * base_percentage;
-    move_fingers(finger_states_wave);
-
-     delay(100);
-    finger_states_wave[INDEX] = 8 * base_percentage;
-    finger_states_wave[MIDDLE] = 8 * base_percentage;
-    finger_states_wave[RING] = 4 * base_percentage;
-    finger_states_wave[PINKY] = 2 * base_percentage;
-    move_fingers(finger_states_wave);
-
-     delay(100);
-    finger_states_wave[INDEX] = 6 * base_percentage;
-    finger_states_wave[MIDDLE] = 10 * base_percentage;
-    finger_states_wave[RING] = 6 * base_percentage;
-    finger_states_wave[PINKY] = 4 * base_percentage;
-    move_fingers(finger_states_wave);
-
-     delay(100);
-    finger_states_wave[INDEX] = 4 * base_percentage;
-    finger_states_wave[MIDDLE] = 8 * base_percentage;
-    finger_states_wave[RING] = 8 * base_percentage;
-    finger_states_wave[PINKY] = 6 * base_percentage;
-    move_fingers(finger_states_wave);
-     delay(100);
-    finger_states_wave[INDEX] = 2 * base_percentage;
-    finger_states_wave[MIDDLE] = 6 * base_percentage;
-    finger_states_wave[RING] = 10 * base_percentage;
-    finger_states_wave[PINKY] = 8 * base_percentage;
-    move_fingers(finger_states_wave);
-
-     delay(100);
-    finger_states_wave[INDEX] = 0 * base_percentage;
-    finger_states_wave[MIDDLE] = 4 * base_percentage;
-    finger_states_wave[RING] = 8 * base_percentage;
-    finger_states_wave[PINKY] = 10 * base_percentage;
-    move_fingers(finger_states_wave);
-     delay(100);
-    finger_states_wave[INDEX] = 2 * base_percentage;
-    finger_states_wave[MIDDLE] = 2 * base_percentage;
-    finger_states_wave[RING] = 6 * base_percentage;
-    finger_states_wave[PINKY] = 8 * base_percentage;
-    move_fingers(finger_states_wave);
-
-     delay(100);
-    finger_states_wave[INDEX] = 4 * base_percentage;
-    finger_states_wave[MIDDLE] = 0 * base_percentage;
-    finger_states_wave[RING] = 4 * base_percentage;
-    finger_states_wave[PINKY] = 6 * base_percentage;
-    move_fingers(finger_states_wave);
-     delay(100);
-    finger_states_wave[INDEX] = 6 * base_percentage;
-    finger_states_wave[MIDDLE] = 2 * base_percentage;
-    finger_states_wave[RING] = 2 * base_percentage;
-    finger_states_wave[PINKY] = 4 * base_percentage;
-    move_fingers(finger_states_wave);
-     delay(100);
-    finger_states_wave[INDEX] = 8 * base_percentage;
-    finger_states_wave[MIDDLE] = 4 * base_percentage;
-    finger_states_wave[RING] = 0 * base_percentage;
-    finger_states_wave[PINKY] = 2 * base_percentage;
-    move_fingers(finger_states_wave);
-     delay(100);
-    finger_states_wave[INDEX] = 10 * base_percentage;
-    finger_states_wave[MIDDLE] = 6 * base_percentage;
-    finger_states_wave[RING] = 2 * base_percentage;
-    finger_states_wave[PINKY] = 0 * base_percentage;
-    move_fingers(finger_states_wave);
-     delay(100);
-    finger_states_wave[INDEX] = 8 * base_percentage;
-    finger_states_wave[MIDDLE] = 8 * base_percentage;
-    finger_states_wave[RING] = 4 * base_percentage;
-    finger_states_wave[PINKY] = 2 * base_percentage;
-    move_fingers(finger_states_wave);
+      delay(delay_time);
+      finger_states_wave[INDEX] = 2 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+      delay(delay_time);
+      finger_states_wave[INDEX] = 4 * base_percentage;
+      finger_states_wave[MIDDLE] = 2 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+      delay(delay_time);
+      finger_states_wave[INDEX] = 6 * base_percentage;
+      finger_states_wave[MIDDLE] = 4 * base_percentage;
+      finger_states_wave[RING] = 2 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+      delay(delay_time);
+      finger_states_wave[INDEX] = 8 * base_percentage;
+      finger_states_wave[MIDDLE] = 6 * base_percentage;
+      finger_states_wave[RING] = 4 * base_percentage;
+      finger_states_wave[PINKY] = 2 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+      delay(delay_time);
+      finger_states_wave[INDEX] = 10 * base_percentage;
+      finger_states_wave[MIDDLE] = 8 * base_percentage;
+      finger_states_wave[RING] = 6 * base_percentage;
+      finger_states_wave[PINKY] = 4 * base_percentage;
+      move_fingers(finger_states_wave);
+      
+      delay(delay_time);
+      finger_states_wave[INDEX] = 8 * base_percentage;
+      finger_states_wave[MIDDLE] = 10 * base_percentage;
+      finger_states_wave[RING] = 8 * base_percentage;
+      finger_states_wave[PINKY] = 6 * base_percentage;
+      move_fingers(finger_states_wave);
+      
+      delay(delay_time);
+      finger_states_wave[INDEX] = 6 * base_percentage;
+      finger_states_wave[MIDDLE] = 8 * base_percentage;
+      finger_states_wave[RING] = 10 * base_percentage;
+      finger_states_wave[PINKY] = 8 * base_percentage;
+      move_fingers(finger_states_wave);
+      
+      delay(delay_time);
+      finger_states_wave[INDEX] = 4 * base_percentage;
+      finger_states_wave[MIDDLE] = 6 * base_percentage;
+      finger_states_wave[RING] = 8 * base_percentage;
+      finger_states_wave[PINKY] = 10 * base_percentage;
+      move_fingers(finger_states_wave);
+      delay(delay_time);
+      finger_states_wave[INDEX] = 2 * base_percentage;
+      finger_states_wave[MIDDLE] = 4 * base_percentage;
+      finger_states_wave[RING] = 6 * base_percentage;
+      finger_states_wave[PINKY] = 8 * base_percentage;
+      move_fingers(finger_states_wave);
+      delay(delay_time);
+      finger_states_wave[INDEX] = 0 * base_percentage;
+      finger_states_wave[MIDDLE] = 4 * base_percentage;
+      finger_states_wave[RING] = 6 * base_percentage;
+      finger_states_wave[PINKY] = 8 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+      delay(delay_time);
+      finger_states_wave[INDEX] = 2 * base_percentage;
+      finger_states_wave[MIDDLE] = 2 * base_percentage;
+      finger_states_wave[RING] = 4 * base_percentage;
+      finger_states_wave[PINKY] = 6 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+       delay(delay_time);
+      finger_states_wave[INDEX] = 4 * base_percentage;
+      finger_states_wave[MIDDLE] = 0 * base_percentage;
+      finger_states_wave[RING] = 2 * base_percentage;
+      finger_states_wave[PINKY] = 4 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+       delay(delay_time);
+      finger_states_wave[INDEX] = 6 * base_percentage;
+      finger_states_wave[MIDDLE] = 2 * base_percentage;
+      finger_states_wave[RING] = 0 * base_percentage;
+      finger_states_wave[PINKY] = 4 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+       delay(delay_time);
+      finger_states_wave[INDEX] = 8 * base_percentage;
+      finger_states_wave[MIDDLE] = 4 * base_percentage;
+      finger_states_wave[RING] = 0 * base_percentage;
+      finger_states_wave[PINKY] = 2 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+       delay(delay_time);
+      finger_states_wave[INDEX] = 10 * base_percentage;
+      finger_states_wave[MIDDLE] = 6 * base_percentage;
+      finger_states_wave[RING] = 2 * base_percentage;
+      finger_states_wave[PINKY] = 0 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+       delay(delay_time);
+      finger_states_wave[INDEX] = 8 * base_percentage;
+      finger_states_wave[MIDDLE] = 8 * base_percentage;
+      finger_states_wave[RING] = 4 * base_percentage;
+      finger_states_wave[PINKY] = 2 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+       delay(delay_time);
+      finger_states_wave[INDEX] = 6 * base_percentage;
+      finger_states_wave[MIDDLE] = 10 * base_percentage;
+      finger_states_wave[RING] = 6 * base_percentage;
+      finger_states_wave[PINKY] = 4 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+       delay(delay_time);
+      finger_states_wave[INDEX] = 4 * base_percentage;
+      finger_states_wave[MIDDLE] = 8 * base_percentage;
+      finger_states_wave[RING] = 8 * base_percentage;
+      finger_states_wave[PINKY] = 6 * base_percentage;
+      move_fingers(finger_states_wave);
+       delay(delay_time);
+      finger_states_wave[INDEX] = 2 * base_percentage;
+      finger_states_wave[MIDDLE] = 6 * base_percentage;
+      finger_states_wave[RING] = 10 * base_percentage;
+      finger_states_wave[PINKY] = 8 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+       delay(delay_time);
+      finger_states_wave[INDEX] = 0 * base_percentage;
+      finger_states_wave[MIDDLE] = 4 * base_percentage;
+      finger_states_wave[RING] = 8 * base_percentage;
+      finger_states_wave[PINKY] = 10 * base_percentage;
+      move_fingers(finger_states_wave);
+      
+       delay(delay_time);
+      finger_states_wave[INDEX] = 2 * base_percentage;
+      finger_states_wave[MIDDLE] = 2 * base_percentage;
+      finger_states_wave[RING] = 6 * base_percentage;
+      finger_states_wave[PINKY] = 8 * base_percentage;
+      move_fingers(finger_states_wave);
+  
+       delay(delay_time);
+      finger_states_wave[INDEX] = 4 * base_percentage;
+      finger_states_wave[MIDDLE] = 0 * base_percentage;
+      finger_states_wave[RING] = 4 * base_percentage;
+      finger_states_wave[PINKY] = 6 * base_percentage;
+      move_fingers(finger_states_wave);
+      
+       delay(delay_time);
+      finger_states_wave[INDEX] = 6 * base_percentage;
+      finger_states_wave[MIDDLE] = 2 * base_percentage;
+      finger_states_wave[RING] = 2 * base_percentage;
+      finger_states_wave[PINKY] = 4 * base_percentage;
+      move_fingers(finger_states_wave);
+      
+       delay(delay_time);
+      finger_states_wave[INDEX] = 8 * base_percentage;
+      finger_states_wave[MIDDLE] = 4 * base_percentage;
+      finger_states_wave[RING] = 0 * base_percentage;
+      finger_states_wave[PINKY] = 2 * base_percentage;
+      move_fingers(finger_states_wave);
+      
+       delay(delay_time);
+      finger_states_wave[INDEX] = 10 * base_percentage;
+      finger_states_wave[MIDDLE] = 6 * base_percentage;
+      finger_states_wave[RING] = 2 * base_percentage;
+      finger_states_wave[PINKY] = 0 * base_percentage;
+      move_fingers(finger_states_wave);
+      
+       delay(delay_time);
+      finger_states_wave[INDEX] = 8 * base_percentage;
+      finger_states_wave[MIDDLE] = 8 * base_percentage;
+      finger_states_wave[RING] = 4 * base_percentage;
+      finger_states_wave[PINKY] = 2 * base_percentage;
+      move_fingers(finger_states_wave);
     }
-    
 }
 
 void setup() {
@@ -431,7 +462,7 @@ void setup() {
         finger_servos[i].attach(FINGER_PINS[i]);
     }
     reset_finger_states();
-    delay(1000);
+
     #ifdef ENABLE_SERIAL_PORT_CONTROL
     Serial.begin(SERIAL_PORT);  // Connect to serial port, baud rate is 9600
     #endif
@@ -441,7 +472,6 @@ void setup() {
     irrecv.enableIRIn();        // Enable the IR receiver pin
     #endif
 
-    start_finger_wave_advanced();
     Serial.println("Setup completed" ) ;
 }
 
