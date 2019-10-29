@@ -24,7 +24,7 @@ void read_radio_messages() {
     bool is_read_all = false;
     while (!is_read_all){
       is_read_all = radio.read(radio_received_msg, sizeof(radio_received_msg));
-      for (int = 0; i < FINGER_COUNT; i++) {
+      for (int i = 0; i < FINGER_COUNT; i++) {
         finger_servos[i].write(radio_received_msg[i]);  
       }
     }
