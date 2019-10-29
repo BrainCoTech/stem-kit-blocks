@@ -18,6 +18,7 @@
 #define FINGER_COUNT 5
 #define PIPE_COUNT 1
 #define IDLE_TIMEOUT 60000 // milliseconds
+#define RADIO_TIMEOUT 2000 // milliseconds
 #define SERIAL_PORT 9600
 #define MOVEMENT_WAITING_TIME 500 // milliseconds
 #define THUMB_COLLISION_WAIT 200 // milliseconds
@@ -62,7 +63,6 @@ typedef enum {
     LONG_PRESS = 65535
 } IR_REMOTE_KEYS;
 
-//static int FINGER_PINS[FINGER_COUNT] = {5, 6, 9, 10, 11};
 static int FINGER_PINS[FINGER_COUNT] = {15, 16, 17, 18, 19};
 
 static int FINGER_MAX_DEGS[FINGER_COUNT] = {90, 100, 100, 100, 100};
@@ -72,8 +72,10 @@ static int current_finger_states[FINGER_COUNT] = {0};
 //prevent from receiving constantly coming signal of rock, causing action not finished
 static bool thumb_collision_lock = false;
 static bool serial_port_data_lock = false;
+static bool ir_lock = false;
 IRrecv irrecv(IR_RECV_PIN); // Initiate IR signal input
 unsigned long idle_ts;
+unsigned long radio_alive_ts;
 
 static int radio_received_msg[FINGER_COUNT];
 RF24 radio(CE_PIN, CSN_PIN);     /*This object represents a modem connected to the Arduino. 
@@ -268,6 +270,9 @@ void start_finger_wave() {
 
 void read_radio_messages() {
   while(radio.available()){
+    Serial.println("Receiving Flex Radio signal");
+    ir_lock = true; //set lock to block ir signal
+    radio_alive_ts = millis(); //set the lock alive time
     radio.read(&radio_received_msg, sizeof(radio_received_msg));
     for (int i = 0; i < FINGER_COUNT; i++) {
       finger_servos[i].write(radio_received_msg[i]);  
@@ -308,19 +313,24 @@ void loop() {
         reset_finger_states();
         Serial.println("Bending the fingers too long, Release!");
     }
+
+    // if the radio has not been detected around 2s, reset the ir lock
+    if (millis() - radio_alive_ts > RADIO_TIMEOUT) {
+        ir_lock = false;  
+    }
     
     //control by serial port
     #ifdef ENABLE_SERIAL_PORT_CONTROL
     handle_serial_cmd();
     #endif
-    
+
     //control by IR remote
-    if (radio.available()) {
-        read_radio_messages();
-    } else {
-        #ifdef ENABLE_IR_REMOTE_CONTROL
-        handle_ir_remote_cmd();
-        #endif
-    }
-    
+    #ifdef ENABLE_IR_REMOTE_CONTROL
+    if (!ir_lock) handle_ir_remote_cmd();
+    #endif
+
+    //control by RF24
+    #ifdef ENABLE_RF24_CONTROL
+    read_radio_messages();
+    #endif
 }
