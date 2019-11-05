@@ -13,6 +13,7 @@
 #define THUMB_COLLISION_WAIT 200 // milliseconds
 #define CAUSE_COLLISION_DEG 60
 #define THUMB_COLLISION_MAX_PERCENTAGE 60
+#define SERVO_MALFUNCTION_PREVENTION_DELAY 50 // milliseconds
 
 #define ENABLE_IR_REMOTE_CONTROL 1
 #define ENABLE_SERIAL_PORT_CONTROL 1
@@ -92,6 +93,8 @@ void move_finger(int finger, int percentage) {
     int rounded_deg = (int) (degree + 0.5);
 
     finger_servos[finger].write(rounded_deg);
+    //prevent servo malfunction when fingers move together
+    delay(SERVO_MALFUNCTION_PREVENTION_DELAY);
     //keep track of current state
     current_finger_states[finger] = percentage;
 }
